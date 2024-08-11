@@ -1,4 +1,4 @@
-import { useState ,useEffect} from "react";
+import { useState, useEffect } from "react";
 
 const tempMovieData = [
   {
@@ -47,27 +47,46 @@ const tempWatchedData = [
   },
 ];
 
-const average = (arr) => arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
+const average = (arr) =>
+  arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
-const KEY = '399d6c20'
-const API_URL = `http://www.omdbapi.com/?apikey=${KEY}&`
-
+const KEY = "399d6c20";
+const API_URL = `http://www.omdbapi.com/?apikey=${KEY}&`;
 
 export default function App() {
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState(tempWatchedData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error,setError] = useState("")
 
-  const searchMovies = async (title) => {
-    const response = await fetch(`${API_URL}&s=${title}`);
-    const data = await response.json();
-    // console.log(data);
-    setMovies(data.Search);
-  };
+  useEffect(function () {
+    async function searchMovies(title) {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_URL}&s=${title}`);
+        // =============  Error Handling
+        if(!response.ok) throw new Error("something is Wrong")
+        // ============= =============  =====================
+        const data = await response.json();
+        // =============  Error Handling
+        if(data.Response === 'False') throw new Error("Movie Not Found")
+        // ============= =============  =====================
+        // console.log(data);
+        setMovies(data.Search);
+        console.log(data);
+        setIsLoading(false);
+        // ================  Error Handling
+      } catch (err){
+        console.log(err.message);
+        setError(err.message);
+      }finally{
+        setIsLoading(false);
+      }
+        // ============= =============  =====================
+    }
 
-  useEffect(() => {
-    searchMovies("superman");
+    searchMovies("dgsdfg");
   }, []);
-
 
   return (
     <>
@@ -78,8 +97,11 @@ export default function App() {
 
       <Main>
         <Box>
-          <MovieList movies={movies} />
-        </Box>
+          {/* {isLoading ? <Loader /> : <MovieList movies={movies} />} */}
+          {isLoading && <Loader/>}
+          {!isLoading && !error && <MovieList movies={movies} /> }
+          {error && <ErrorMessage message={error}/>}
+          </Box>
 
         <Box>
           <WatchedSummary watched={watched} />
@@ -89,6 +111,22 @@ export default function App() {
     </>
   );
 }
+
+function Loader() {
+  return (
+    <>
+      <p className="loader">Loading...</p>
+    </>
+  );
+}
+
+function ErrorMessage({message}){
+  return <p className="error">
+    <span>📛❌📛⛔</span> {message}
+  </p>
+}
+
+
 
 function NavBar({ children }) {
   return (
