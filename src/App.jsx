@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import StarRating from './components/StarRating'
+import StarRating from "./components/StarRating";
 
 const tempMovieData = [
   {
@@ -52,54 +52,38 @@ const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 const KEY = "399d6c20";
+//--------------------------------------------
 
 export default function App() {
+  //-----------States changed data ---------------
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedId, setSelectedId] = useState(null);
-
-  /*
-  useEffect(function () {
-    console.log("After initial render");
-  }, []);
-
-  useEffect(function () {
-    console.log("After every render");
-  });
-
-  useEffect(
-    function () {
-      console.log("D");
-    },
-    [query]
-  );
-
-  console.log("During render");
-*/
-
+  //------------- Handlers ----------
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
   }
-
   function handleCloseMovie() {
     setSelectedId(null);
   }
-
+  // function handleAddWatchedMovie(movie) {
+  //   setWatched((watched) => [...watched, movie]);
+  // }
   function handleAddWatched(movie) {
     setWatched((watched) => [...watched, movie]);
   }
-
   function handleDeleteWatched(id) {
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
 
+  //--------- Side Effects ------
   useEffect(
     function () {
+      //========= browser api to cancel old fetch
       const controller = new AbortController();
-
       async function fetchMovies() {
         try {
           setIsLoading(true);
@@ -112,10 +96,9 @@ export default function App() {
 
           if (!res.ok)
             throw new Error("Something went wrong with fetching movies");
-
           const data = await res.json();
           if (data.Response === "False") throw new Error("Movie not found");
-
+          // console.log(data.Search)
           setMovies(data.Search);
           setError("");
         } catch (err) {
@@ -134,9 +117,8 @@ export default function App() {
         return;
       }
 
-      handleCloseMovie();
       fetchMovies();
-
+      //-------- clean up function
       return function () {
         controller.abort();
       };
@@ -144,6 +126,11 @@ export default function App() {
     [query]
   );
 
+
+
+  //-----------------------------
+  //------------- JSX  ----------
+  //-----------------------------
   return (
     <>
       <NavBar>
@@ -172,9 +159,9 @@ export default function App() {
           ) : (
             <>
               <WatchedSummary watched={watched} />
-              <WatchedMoviesList
-                watched={watched}
-                onDeleteWatched={handleDeleteWatched}
+              <WatchedMoviesList 
+              watched={watched} 
+              onDeleteWatched={handleDeleteWatched}
               />
             </>
           )}
@@ -183,6 +170,10 @@ export default function App() {
     </>
   );
 }
+
+// =============================================
+// ============= Components ====================
+// =============================================
 
 function Loader() {
   return <p className="loader">Loading...</p>;
@@ -303,14 +294,18 @@ function Movie({ movie, onSelectMovie }) {
 }
 
 function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
+  //------------- States ------------
   const [movie, setMovie] = useState({});
+  // console.log(title,actors)
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState("");
-
+  // const isWatched = watched.map(movie => movie.imdbID)
+  // console.log(isWatched);
   const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
   const watchedUserRating = watched.find(
     (movie) => movie.imdbID === selectedId
   )?.userRating;
+  //--------- destructuring ------
 
   const {
     Title: title,
@@ -319,12 +314,12 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     Runtime: runtime,
     imdbRating,
     Plot: plot,
-    Released: released,
     Actors: actors,
-    Director: director,
+    Directors: directors,
     Genre: genre,
+    Released: released,
   } = movie;
-
+  //--------- Handlers ------
   function handleAdd() {
     const newWatchedMovie = {
       imdbID: selectedId,
@@ -333,38 +328,22 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       poster,
       imdbRating: Number(imdbRating),
       runtime: Number(runtime.split(" ").at(0)),
-      userRating,
+      userRating: Number,
     };
 
     onAddWatched(newWatchedMovie);
     onCloseMovie();
   }
-
+  //--------- Side Effects ------
   useEffect(
-    function () {
-      function callback(e) {
-        if (e.code === "Escape") {
-          onCloseMovie();
-        }
-      }
-
-      document.addEventListener("keydown", callback);
-
-      return function () {
-        document.removeEventListener("keydown", callback);
-      };
-    },
-    [onCloseMovie]
-  );
-
-  useEffect(
-    function () {
+    function name() {
       async function getMovieDetails() {
         setIsLoading(true);
         const res = await fetch(
           `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
         );
         const data = await res.json();
+        // console.log(data)
         setMovie(data);
         setIsLoading(false);
       }
@@ -373,72 +352,92 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     [selectedId]
   );
 
-  useEffect(
-    function () {
-      if (!title) return;
-      document.title = `Movie | ${title}`;
+  useEffect(function(){
+    
+    if(!title) return;
+    document.title = `Movie | ${movie.Title}`;
+    return function(){
+      document.title = "usePopcorn"
+      console.log(`clean up effect for movie ${title}`)
+    }
+  }, [title])
+  
+  useEffect(() => {
 
-      return function () {
-        document.title = "usePopcorn";
-        // console.log(`Clean up effect for movie ${title}`);
-      };
-    },
-    [title]
-  );
+      function callback(e) {
+        if(e.code === 'Escape'){
+          onCloseMovie();
+          // console.log("Closing")
+        }
+      }
 
+
+    document.addEventListener('keydown',callback)
+  
+    return () => {
+      document.removeEventListener('keydown',callback)
+    }
+  }, [selectedId])
+  
+  //------------- JSX  ----------
   return (
-    <div className="details">
-      {isLoading ? (
-        <Loader />
-      ) : (
-        <>
-          <header>
-            <button className="btn-back" onClick={onCloseMovie}>
-              &larr;
-            </button>
-            <img src={poster} alt={`Poster of ${movie} movie`} />
-            <div className="details-overview">
-              <h2>{title}</h2>
-              <p>
-                {released} &bull; {runtime}
-              </p>
-              <p>{genre}</p>
-              <p>
-                <span>⭐️</span>
-                {imdbRating} IMDb rating
-              </p>
-            </div>
-          </header>
-          <section>
-            <div className="rating">
+    <>
+      <div className="details">
+        {isLoading ? (
+          <>
+            <Loader />
+          </>
+        ) : (
+          <>
+            <header>
+              <button className="btn-back" onClick={() => onCloseMovie()}>
+                &larr;
+              </button>
+              <img src={poster} alt={`Poster of ${movie}`}/>
+              <div className="details-overview">
+                <h2>{title}</h2>
+                <p>
+                  {released} &bull; {runtime}
+                </p>
+                <p>{genre}</p>
+                <p>
+                  <span>⭐️</span>
+                  {imdbRating} IMDb rating
+                </p>
+              </div>
+            </header>
+            <section>
               {!isWatched ? (
                 <>
-                  <StarRating
-                    maxRating={10}
-                    size={24}
-                    onSetRating={setUserRating}
-                  />
-                  {userRating > 0 && (
-                    <button className="btn-add" onClick={handleAdd}>
-                      + Add to list
-                    </button>
-                  )}
+                  <div className="rating">
+                    <StarRating
+                      maxRating={10}
+                      size={24}
+                      onSetRating={setUserRating}
+                    />
+                    {userRating > 0 && (
+                      <>
+                        <button className="btn-add" onClick={handleAdd}>
+                          Add To List
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </>
               ) : (
-                <p>
-                  You rated with movie {watchedUserRating} <span>⭐️</span>
-                </p>
+                <p>You Rate This Movie {watchedUserRating}</p>
               )}
-            </div>
-            <p>
-              <em>{plot}</em>
-            </p>
-            <p>Starring {actors}</p>
-            <p>Directed by {director}</p>
-          </section>
-        </>
-      )}
-    </div>
+
+              <p>
+                <em>{plot}</em>
+              </p>
+              <p>Starring {actors}</p>
+              <p>Directed by {directors}</p>
+            </section>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
